@@ -22,18 +22,28 @@ async function main() {
   console.log("Seeding 10 products with 10 stock each...");
   for (const [index, name] of productNames.entries()) {
     // generate a pseudo-random price between 10.00 and 299.99
-    const price = Number((10 + Math.random() * 289.99).toFixed(2));
-    const product = await prisma.product.create({
-      data: {
-        name,
-        price,
-        stock: 10,
-        image: null,
-      },
+      const product = await prisma.product.upsert({
+        where: { id: `seed-${index + 1}` },
+        update: {
+          name,
+          price: 0,
+          stock: 10,
+          image: null,
+        },
+        create: {
+          id: `seed-${index + 1}`,
+          name,
+          price: 0,
+          stock: 10,
+          image: null,
+        },
     });
-    console.log(`Created product #${index + 1}: ${product.name} - $${product.price} (stock: ${product.stock})`);
+      console.log(`Seeded product #${index + 1}: ${product.name} - $${product.price} (stock: ${product.stock})`);
   }
-  console.log("Done seeding products.");
+    await prisma.product.updateMany({
+      data: { price: 0 },
+    });
+    console.log("Done seeding products. All product prices are $0.00.");
 }
 
 main()

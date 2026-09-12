@@ -7,6 +7,10 @@ import { authenticateToken } from '../middleware/auth.js';
 const router = Router();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
+const configuredFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+const frontendUrl = /^https?:\/\//.test(configuredFrontendUrl)
+  ? configuredFrontendUrl
+  : `https://${configuredFrontendUrl}`;
 
 // Create a Stripe Checkout Session
 router.post('/create-checkout-session', authenticateToken, async (req: any, res: any) => {
@@ -37,8 +41,8 @@ router.post('/create-checkout-session', authenticateToken, async (req: any, res:
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
-      success_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/checkout?session_id={CHECKOUT_SESSION_ID}&success=true`,
-      cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/checkout?canceled=true`,
+      success_url: `${frontendUrl}/checkout?session_id={CHECKOUT_SESSION_ID}&success=true`,
+      cancel_url: `${frontendUrl}/checkout?canceled=true`,
       metadata: {
         userId,
         orderPayload: JSON.stringify(orderPayload),

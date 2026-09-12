@@ -12,6 +12,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 // --- ROUTES ---
 // The Stripe webhook route applies its own express.raw() parser locally, so mounting

@@ -1,0 +1,63 @@
+databases:
+  - name: shopping-postgres
+    databaseName: order_db
+    user: shopping
+    plan: free
+
+services:
+  - type: web
+    name: shopping-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: shopping-postgres
+          property: connectionString
+      - key: REDIS_URL
+        sync: false
+      - key: KAFKA_BROKER
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: shopping-frontend
+          property: host
+
+  - type: web
+    name: shopping-notifications
+    runtime: docker
+    dockerfilePath: ./notification-service/Dockerfile
+    dockerContext: ./notification-service
+    healthCheckPath: /health
+    envVars:
+      - key: KAFKA_BROKERS
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+
+  - type: web
+    name: shopping-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    envVars:
+      - key: BACKEND_HOST
+        fromService:
+          type: web
+          name: shopping-backend
+          property: host
+      - key: NOTIFICATION_HOST
+        fromService:
+          type: web
+          name: shopping-notifications
+          property: host

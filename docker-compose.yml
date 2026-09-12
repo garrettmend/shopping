@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: order_db
     ports:
-      - "5432:5432"
+      - "55432:5432"
 
   postgres-inventory:
     image: postgres:15-alpine
@@ -58,8 +58,23 @@ services:
     ports:
       - "4001:4001"
 
+  notification-service:
+    build:
+      context: ./notification-service
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      PORT: 4002
+    ports:
+      - "4002:4002"
+
   frontend:
     build:
-      context: ./frontend
+      context: .
+      dockerfile: ./frontend/Dockerfile
+    environment:
+      BACKEND_URL: http://backend:4001
+      NOTIFICATION_URL: http://notification-service:4002
     ports:
       - "3000:80"

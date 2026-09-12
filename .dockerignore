@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+**/target
+**/bin
+**/obj
+.git
+.gitignore
+.env
+.env.*
+npm-debug.log

@@ -38,7 +38,7 @@ const Checkout = () => {
   // Listen for Kafka notification events via Socket.io
   // (order-status-update events are broadcast by the notification-service)
   useEffect(() => {
-    const socket = io("http://localhost:4002");
+    const socket = io();
     socket.on("order-status-update", (data) => {
       setOrderStatus(data.status);
       if (data.status === "CONFIRMED" || data.status === "CANCELLED") {

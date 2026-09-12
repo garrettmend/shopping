@@ -11,6 +11,8 @@ const io = new Server(server, {
   },
 });
 
+app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+
 // Socket.io connection tracking
 io.on('connection', (socket) => {
   console.log(`[Notification Service] Frontend client connected: ${socket.id}`);

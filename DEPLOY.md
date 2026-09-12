@@ -14,12 +14,14 @@ Create the Blueprint from the repository in Render. Set these `sync: false` valu
 - `REDIS_URL`: a managed Redis connection string
 - `KAFKA_BROKER`: the Kafka broker address used by the backend
 - `KAFKA_BROKERS`: the Kafka broker address used by the notification service
+- `KAFKA_USERNAME`: the Kafka API key or SASL username
+- `KAFKA_PASSWORD`: the Kafka API secret or SASL password
 - `JWT_SECRET`: a long random signing secret
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 - `RESEND_API_KEY`
 
-Kafka is not provisioned by this Blueprint. Use a hosted Kafka provider and set the broker value to the provider's TLS connection address. Redis likewise needs a hosted Redis instance unless you add one separately in Render.
+Kafka is not provisioned by this Blueprint. For Confluent Cloud, set the bootstrap server as the broker value and set the API key and secret as `KAFKA_USERNAME` and `KAFKA_PASSWORD`. The application enables TLS/SASL automatically when both are present. Redis likewise needs a hosted Redis instance unless you add one separately in Render.
 
 The frontend proxies `/api` to the backend and `/socket.io` to the notification service, so browser requests remain same-origin after deployment.
 

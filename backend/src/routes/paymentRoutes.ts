@@ -11,6 +11,7 @@ const configuredFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000
 const frontendUrl = /^https?:\/\//.test(configuredFrontendUrl)
   ? configuredFrontendUrl
   : `https://${configuredFrontendUrl}`;
+const normalizedFrontendUrl = frontendUrl.replace(/\/+$/, '');
 
 // Create a Stripe Checkout Session
 router.post('/create-checkout-session', authenticateToken, async (req: any, res: any) => {
@@ -41,8 +42,8 @@ router.post('/create-checkout-session', authenticateToken, async (req: any, res:
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
-      success_url: `${frontendUrl}/checkout?session_id={CHECKOUT_SESSION_ID}&success=true`,
-      cancel_url: `${frontendUrl}/checkout?canceled=true`,
+      success_url: `${normalizedFrontendUrl}/checkout?session_id={CHECKOUT_SESSION_ID}&success=true`,
+      cancel_url: `${normalizedFrontendUrl}/checkout?canceled=true`,
       metadata: {
         userId,
         orderPayload: JSON.stringify(orderPayload),

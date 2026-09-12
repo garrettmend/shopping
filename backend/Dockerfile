@@ -12,4 +12,4 @@ FROM node:20-alpine
 WORKDIR /usr/src/app
 COPY --from=builder /usr/src/app ./
 ENV NODE_ENV=production
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && if [ \"${SEED_PRODUCTS:-false}\" = \"true\" ]; then npx tsx scripts/seedProducts.ts; fi && node dist/src/server.js"]

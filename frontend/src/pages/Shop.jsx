@@ -8,6 +8,7 @@ const Shop = () => {
   const [loadTestCount, setLoadTestCount] = useState(10);
   const [loadTestStatus, setLoadTestStatus] = useState("");
   const [orderLoadStatus, setOrderLoadStatus] = useState("");
+  const [orderLoadLogs, setOrderLoadLogs] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const { addItem } = useCart();
   const { token } = useAuth();
@@ -85,7 +86,15 @@ const Shop = () => {
 
     const endTime = Date.now() + 30_000;
     const stats = { requests: 0, successful: 0, expectedFailures: 0, unexpectedFailures: 0, latency: 0 };
+    const log = (message) => {
+      const entry = `[${new Date().toLocaleTimeString()}] ${message}`;
+      console.log(`[Order Load Test] ${message}`);
+      setOrderLoadLogs((current) => [...current, entry].slice(-100));
+    };
+
+    setOrderLoadLogs([]);
     setOrderLoadStatus("Running 100 concurrent order workers for 30 seconds...");
+    log("Started 100 workers for 30 seconds.");
 
     const worker = async () => {
       while (Date.now() < endTime) {
@@ -104,9 +113,13 @@ const Shop = () => {
           if (response.status === 201) stats.successful += 1;
           else if (response.status === 400) stats.expectedFailures += 1;
           else stats.unexpectedFailures += 1;
+          if (stats.requests % 100 === 0) {
+            log(`Progress: ${stats.requests} requests, ${stats.successful} successful, ${stats.expectedFailures} expected failures, ${stats.unexpectedFailures} unexpected failures.`);
+          }
         } catch {
           stats.requests += 1;
           stats.unexpectedFailures += 1;
+          log(`Request ${stats.requests} failed with a network error.`);
         }
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
@@ -119,6 +132,7 @@ const Shop = () => {
       `${stats.expectedFailures} expected stock failures, ${stats.unexpectedFailures} unexpected failures, ` +
       `${averageLatency}ms average latency.`,
     );
+    log(`Finished: ${stats.requests} requests, ${stats.successful} successful, ${stats.expectedFailures} expected failures, ${stats.unexpectedFailures} unexpected failures, ${averageLatency}ms average latency.`);
   };
 
   return (
@@ -144,6 +158,11 @@ const Shop = () => {
         <section>
           <button onClick={runOrderLoadTest}>Run 100-User Order Test</button>
           {orderLoadStatus && <p>{orderLoadStatus}</p>}
+          {orderLoadLogs.length > 0 && (
+            <pre style={{ maxHeight: "240px", overflow: "auto", padding: "12px", background: "#111", color: "#eee" }}>
+              {orderLoadLogs.join("\n")}
+            </pre>
+          )}
         </section>
       )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>

@@ -17,3 +17,12 @@ export const authenticateToken = (req: any, res: any, next: any) => {
 export const generateToken = (payload: object) => {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
 };
+
+export const requireAdmin = (req: any, res: any, next: any) => {
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const userEmail = req.user?.email?.trim().toLowerCase();
+  if (!adminEmail || !userEmail || adminEmail !== userEmail) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+};

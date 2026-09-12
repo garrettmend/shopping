@@ -9,6 +9,7 @@ const Shop = () => {
   const [loadTestStatus, setLoadTestStatus] = useState("");
   const [orderLoadStatus, setOrderLoadStatus] = useState("");
   const [orderLoadLogs, setOrderLoadLogs] = useState([]);
+  const [cacheTestStatus, setCacheTestStatus] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const { addItem } = useCart();
   const { token } = useAuth();
@@ -135,6 +136,28 @@ const Shop = () => {
     log(`Finished: ${stats.requests} requests, ${stats.successful} successful, ${stats.expectedFailures} expected failures, ${stats.unexpectedFailures} unexpected failures, ${averageLatency}ms average latency.`);
   };
 
+  const runCacheTest = async () => {
+    if (!token) return;
+    setCacheTestStatus("Running cold and warm cache requests...");
+    const headers = { Authorization: `Bearer ${token}` };
+    await fetch("/api/products/cache/reset", { method: "POST", headers });
+
+    const coldStart = performance.now();
+    const coldResponse = await fetch("/api/products");
+    await coldResponse.json();
+    const coldMs = Math.round(performance.now() - coldStart);
+
+    const warmStart = performance.now();
+    const warmResponse = await fetch("/api/products");
+    await warmResponse.json();
+    const warmMs = Math.round(performance.now() - warmStart);
+
+    const message = `Cold: ${coldMs}ms (${coldResponse.headers.get("X-Cache") || "unknown"}), ` +
+      `warm: ${warmMs}ms (${warmResponse.headers.get("X-Cache") || "unknown"}).`;
+    setCacheTestStatus(message);
+    console.log(`[Redis Cache Test] ${message}`);
+  };
+
   return (
     <>
       <h1>Shop</h1>
@@ -163,6 +186,12 @@ const Shop = () => {
               {orderLoadLogs.join("\n")}
             </pre>
           )}
+        </section>
+      )}
+      {isAdmin && (
+        <section>
+          <button onClick={runCacheTest}>Test Redis Cache Savings</button>
+          {cacheTestStatus && <p>{cacheTestStatus}</p>}
         </section>
       )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>

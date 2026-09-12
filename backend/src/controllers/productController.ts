@@ -5,6 +5,7 @@ export const getProducts = async (req: any, res: any) => {
   // 1. Check Redis cache first
   const cachedProducts = await redisClient.get('products:all');
   if (cachedProducts) {
+    res.setHeader('X-Cache', 'HIT');
     return res.json(JSON.parse(cachedProducts));
   }
 
@@ -14,7 +15,13 @@ export const getProducts = async (req: any, res: any) => {
   // 3. Save to Redis cache with an expiration time (e.g., 60 seconds)
   await redisClient.setEx('products:all', 60, JSON.stringify(products));
 
+  res.setHeader('X-Cache', 'MISS');
   res.json(products);
+};
+
+export const clearProductCache = async (_req: any, res: any) => {
+  await redisClient.del('products:all');
+  return res.json({ cleared: true });
 };
 
 export const getProductById = async (req: any, res: any) => {

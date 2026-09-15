@@ -48,3 +48,18 @@ enum OrderStatus {
   CONFIRMED
   CANCELLED
 }
+
+model FlywaySchemaHistory {
+  installedRank Int       @id @map("installed_rank")
+  version      String?    @db.VarChar(50)
+  description  String     @db.VarChar(200)
+  type         String     @db.VarChar(20)
+  script       String     @db.VarChar(1000)
+  checksum     Int?
+  installedBy  String     @map("installed_by") @db.VarChar(100)
+  installedOn  DateTime   @map("installed_on")
+  executionTime Int       @map("execution_time")
+  success      Boolean
+
+  @@map("flyway_schema_history")
+}

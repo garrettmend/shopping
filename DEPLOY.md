@@ -23,6 +23,8 @@ Create the Blueprint from the repository in Render. Set these `sync: false` valu
 
 Set `ADMIN_EMAIL` on the backend to the exact email of the admin account. After logging in with that account, the production frontend shows the test controls. Other accounts receive no test controls.
 
+Set `DATABASE_POOL_SIZE` on the backend to raise the Postgres connection pool above the default of 20 if you run the 100-user order load test against a small Railway Postgres plan and see requests time out under load.
+
 Set `SEED_PRODUCTS=true` on the backend for one deployment to create the sample products at `$0.00` and set all existing product prices to `$0.00`. Set it back to `false` afterward if you do not want the seed step on future restarts.
 
 Kafka is not provisioned by this Blueprint. For Confluent Cloud, set the bootstrap server as the broker value and set the API key and secret as `KAFKA_USERNAME` and `KAFKA_PASSWORD`. The application enables TLS/SASL automatically when both are present. Redis likewise needs a hosted Redis instance unless you add one separately in Render.

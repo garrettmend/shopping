@@ -1,11 +1,6 @@
 import "dotenv/config";
-import { execFileSync } from "node:child_process";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-
-execFileSync(process.platform === "win32" ? "npx.cmd" : "npx", ["prisma", "db", "push"], {
-  stdio: "inherit",
-});
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });

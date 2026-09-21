@@ -108,10 +108,12 @@ const Shop = () => {
     setOrderLoadStatus("Running 100 concurrent order workers for 30 seconds...");
     log("Started 100 workers for 30 seconds.");
 
-    const worker = async () => {
+    const worker = async (workerId) => {
       while (Date.now() < endTime) {
         const product = products[Math.floor(Math.random() * products.length)];
         const startedAt = performance.now();
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10_000);
         try {
           const response = await fetch("/api/orders", {
             method: "POST",
@@ -120,25 +122,29 @@ const Shop = () => {
               Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({ items: [{ productId: product.id, quantity: 1 }] }),
+            signal: controller.signal,
           });
           stats.requests += 1;
           stats.latency += performance.now() - startedAt;
           if (response.status === 201) stats.successful += 1;
           else if (response.status === 400) stats.expectedFailures += 1;
           else stats.unexpectedFailures += 1;
-          if (stats.requests % 100 === 0) {
+          if (stats.requests % 20 === 0) {
             log(`Progress: ${stats.requests} requests, ${stats.successful} successful, ${stats.expectedFailures} expected failures, ${stats.unexpectedFailures} unexpected failures.`);
           }
-        } catch {
+        } catch (err) {
           stats.requests += 1;
           stats.unexpectedFailures += 1;
-          log(`Request ${stats.requests} failed with a network error.`);
+          const reason = err?.name === "AbortError" ? "timed out after 10s" : "network error";
+          log(`Worker ${workerId} request ${stats.requests} failed: ${reason}.`);
+        } finally {
+          clearTimeout(timeout);
         }
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     };
 
-    await Promise.all(Array.from({ length: 100 }, worker));
+    await Promise.all(Array.from({ length: 100 }, (_, workerId) => worker(workerId)));
     const averageLatency = stats.requests ? Math.round(stats.latency / stats.requests) : 0;
     setOrderLoadStatus(
       `Finished: ${stats.requests} requests, ${stats.successful} orders, ` +

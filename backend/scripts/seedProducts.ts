@@ -24,7 +24,7 @@ const productNames = [
 ];
 
 async function main() {
-  console.log("Seeding 10 products with 10 stock each...");
+  console.log("Seeding 10 products with 2000 stock each...");
   for (const [index, name] of productNames.entries()) {
     // generate a pseudo-random price between 10.00 and 299.99
       const product = await prisma.product.upsert({
@@ -32,14 +32,14 @@ async function main() {
         update: {
           name,
           price: 0,
-          stock: 10,
+          stock: 2000,
           image: null,
         },
         create: {
           id: `seed-${index + 1}`,
           name,
           price: 0,
-          stock: 10,
+          stock: 2000,
           image: null,
         },
     });

@@ -2,6 +2,12 @@ import prisma from '../prisma.js';
 import redisClient from '../redis.js';
 import { publishOrderCreated } from '../kafka/producer.js';
 
+class InsufficientStockError extends Error {
+  constructor(public productName: string) {
+    super(`Insufficient stock for ${productName}`);
+  }
+}
+
 export const createOrder = async (req: any, res: any) => {
   try {
     const { items, userEmail } = req.body; // Expects array of { productId, quantity } + optional userEmail
@@ -49,6 +55,18 @@ export const createOrder = async (req: any, res: any) => {
 
     // Create the Order in a Transaction with status PENDING
     const newOrder = await prisma.$transaction(async (tx) => {
+      // Atomically decrease stock, only when enough is available, to avoid overselling under concurrent orders
+      for (const item of orderItemsData) {
+        const updated = await tx.product.updateMany({
+          where: { id: item.productId, stock: { gte: item.quantity } },
+          data: { stock: { decrement: item.quantity } },
+        });
+        if (updated.count === 0) {
+          const product = orderItemsData.find((entry) => entry.productId === item.productId);
+          throw new InsufficientStockError(product?.productId ?? item.productId);
+        }
+      }
+
       return await tx.order.create({
         data: {
           userId,
@@ -73,8 +91,12 @@ export const createOrder = async (req: any, res: any) => {
 
     res.status(201).json({ message: 'Order placed successfully', orderId: newOrder.id, status: newOrder.status });
   } catch (error) {
+    if (error instanceof InsufficientStockError) {
+      return res.status(400).json({ error: error.message });
+    }
     console.error(error);
     res.status(500).json({ error: 'Failed to process order' });
   }
 };
+
 

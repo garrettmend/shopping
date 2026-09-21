@@ -24,6 +24,16 @@ export const clearProductCache = async (_req: any, res: any) => {
   return res.json({ cleared: true });
 };
 
+const DEFAULT_TEST_STOCK = 2000;
+
+export const restoreStock = async (_req: any, res: any) => {
+  const result = await prisma.product.updateMany({
+    data: { stock: DEFAULT_TEST_STOCK },
+  });
+  await redisClient.del('products:all');
+  return res.json({ restored: result.count, stock: DEFAULT_TEST_STOCK });
+};
+
 export const getProductById = async (req: any, res: any) => {
   const productId = req.params.id;
 

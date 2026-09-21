@@ -8,7 +8,8 @@ const NavBar = () => {
   const { isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
-  const activeStyle = { fontWeight: "700", textDecoration: "underline" };
+  const linkClass = ({ isActive }) =>
+    `navbar-link${isActive ? " navbar-link--active" : ""}`;
 
   const handleLogout = () => {
     // clear cart immediately for UI
@@ -18,17 +19,18 @@ const NavBar = () => {
   };
 
   return (
-    <nav style={{ padding: "1rem", borderBottom: "1px solid #ddd", display: "flex", gap: "1rem", alignItems: "center" }}>
-      <NavLink to="/" style={({ isActive }) => (isActive ? activeStyle : undefined)}>Shop</NavLink>
-      <NavLink to="/cart" style={({ isActive }) => (isActive ? activeStyle : undefined)}>
+    <nav className="navbar">
+      <NavLink to="/" className="navbar-brand">Shopping Cart</NavLink>
+      <NavLink to="/" className={linkClass} end>Shop</NavLink>
+      <NavLink to="/cart" className={linkClass}>
         Cart{totalCount > 0 ? ` (${totalCount})` : ""}
       </NavLink>
       {isAuthenticated ? (
-        <button onClick={handleLogout} style={{ marginLeft: "auto" }}>Logout</button>
+        <button onClick={handleLogout} className="btn btn-secondary btn-sm navbar-spacer">Logout</button>
       ) : (
-        <div style={{ display: "flex", gap: "1rem", marginLeft: "auto" }}>
-          <NavLink to="/login" style={({ isActive }) => (isActive ? activeStyle : undefined)}>Login</NavLink>
-          <NavLink to="/register" style={({ isActive }) => (isActive ? activeStyle : undefined)}>Register</NavLink>
+        <div className="navbar-spacer">
+          <NavLink to="/login" className={linkClass}>Login</NavLink>
+          <NavLink to="/register" className={linkClass}>Register</NavLink>
         </div>
       )}
     </nav>

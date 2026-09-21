@@ -30,38 +30,40 @@ const Register = () => {
   };
 
   return (
-    <div style={{ maxWidth: 320, margin: "2rem auto" }}>
-      <h1>Register</h1>
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Confirm Password"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          required
-        />
-        {error && <p style={{ color: "red" }}>{error}</p>}
-        <button type="submit" disabled={loading}>
-          {loading ? "Registering..." : "Register"}
-        </button>
-      </form>
-      <p style={{ marginTop: 12 }}>
-        Already have an account? <Link to="/login">Login</Link>
-      </p>
+    <div className="form-page">
+      <div className="card">
+        <h1>Register</h1>
+        <form onSubmit={handleSubmit} className="form">
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Confirm Password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            required
+          />
+          {error && <p className="form-error">{error}</p>}
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            {loading ? "Registering..." : "Register"}
+          </button>
+        </form>
+        <p className="form-footer">
+          Already have an account? <Link to="/login">Login</Link>
+        </p>
+      </div>
     </div>
   );
 };

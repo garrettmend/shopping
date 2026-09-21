@@ -6,7 +6,7 @@ const App = () => {
   return (
     <>
       <NavBar />
-      <main style={{ padding: "1rem" }}>
+      <main className="app-main">
         <Outlet />
       </main>
     </>

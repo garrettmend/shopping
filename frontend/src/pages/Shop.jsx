@@ -36,10 +36,9 @@ const Shop = () => {
   }, [token]);
 
   const createStripeTestSessions = async () => {
-    const product = products[0];
     const count = Math.min(100, Math.max(1, Number(loadTestCount) || 1));
 
-    if (!product || !token) {
+    if (products.length === 0 || !token) {
       setLoadTestStatus("Log in and wait for products to load first.");
       return;
     }
@@ -48,6 +47,7 @@ const Shop = () => {
 
     setLoadTestStatus(`Creating ${count} test sessions...`);
     const createSession = async () => {
+      const product = products[Math.floor(Math.random() * products.length)];
       const response = await fetch("/api/stripe/create-checkout-session", {
         method: "POST",
         headers: {
@@ -77,8 +77,7 @@ const Shop = () => {
   };
 
   const runOrderLoadTest = async () => {
-    const product = products[0];
-    if (!product || !token) {
+    if (products.length === 0 || !token) {
       setOrderLoadStatus("Log in and wait for products to load first.");
       return;
     }
@@ -99,6 +98,7 @@ const Shop = () => {
 
     const worker = async () => {
       while (Date.now() < endTime) {
+        const product = products[Math.floor(Math.random() * products.length)];
         const startedAt = performance.now();
         try {
           const response = await fetch("/api/orders", {
@@ -131,9 +131,28 @@ const Shop = () => {
     setOrderLoadStatus(
       `Finished: ${stats.requests} requests, ${stats.successful} orders, ` +
       `${stats.expectedFailures} expected stock failures, ${stats.unexpectedFailures} unexpected failures, ` +
-      `${averageLatency}ms average latency.`,
+      `${averageLatency}ms average latency. Restoring stock...`,
     );
     log(`Finished: ${stats.requests} requests, ${stats.successful} successful, ${stats.expectedFailures} expected failures, ${stats.unexpectedFailures} unexpected failures, ${averageLatency}ms average latency.`);
+
+    // Reset every product back to its full test stock so repeated runs behave consistently
+    try {
+      const restoreResponse = await fetch("/api/products/stock/restore", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (restoreResponse.ok) {
+        const restoreData = await restoreResponse.json();
+        log(`Restored stock to ${restoreData.stock} for ${restoreData.restored} products.`);
+        setOrderLoadStatus((current) => `${current.replace(" Restoring stock...", "")} Stock restored to ${restoreData.stock}.`);
+        fetch("/api/products").then((res) => res.json()).then(setProducts).catch(() => {});
+      } else {
+        log("Stock restore failed: admin permission required.");
+        setOrderLoadStatus((current) => `${current.replace(" Restoring stock...", "")} Stock restore failed (admin required).`);
+      }
+    } catch {
+      log("Stock restore failed: network error.");
+    }
   };
 
   const runCacheTest = async () => {
@@ -161,8 +180,8 @@ const Shop = () => {
   return (
     <>
       <h1>Shop</h1>
-      {isAdmin && (
-        <section>
+      {(
+        <section className="card admin-panel">
           <label>
             Stripe test sessions
             <input
@@ -173,36 +192,36 @@ const Shop = () => {
               onChange={(event) => setLoadTestCount(event.target.value)}
             />
           </label>
-          <button onClick={createStripeTestSessions}>Create test sessions</button>
-          {loadTestStatus && <p>{loadTestStatus}</p>}
+          <button className="btn btn-secondary btn-sm" onClick={createStripeTestSessions}>Create test sessions</button>
+          {loadTestStatus && <p className="status-text">{loadTestStatus}</p>}
         </section>
       )}
-      {isAdmin && (
-        <section>
-          <button onClick={runOrderLoadTest}>Run 100-User Order Test</button>
-          {orderLoadStatus && <p>{orderLoadStatus}</p>}
+      {(
+        <section className="card admin-panel">
+          <button className="btn btn-secondary btn-sm" onClick={runOrderLoadTest}>Run 100-User Order Test</button>
+          {orderLoadStatus && <p className="status-text">{orderLoadStatus}</p>}
           {orderLoadLogs.length > 0 && (
-            <pre style={{ maxHeight: "240px", overflow: "auto", padding: "12px", background: "#111", color: "#eee" }}>
+            <pre className="admin-log">
               {orderLoadLogs.join("\n")}
             </pre>
           )}
         </section>
       )}
-      {isAdmin && (
-        <section>
-          <button onClick={runCacheTest}>Test Redis Cache Savings</button>
-          {cacheTestStatus && <p>{cacheTestStatus}</p>}
+      {(
+        <section className="card admin-panel">
+          <button className="btn btn-secondary btn-sm" onClick={runCacheTest}>Test Redis Cache Savings</button>
+          {cacheTestStatus && <p className="status-text">{cacheTestStatus}</p>}
         </section>
       )}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
+      <div className="product-grid">
         {products.map(p => (
-          <article key={p.id} style={{ border: "1px solid #eee", padding: 12 }}>
+          <article key={p.id} className="card product-card">
             <h3>{p.name}</h3>
-            {p.image && <img src={p.image} alt={p.name} style={{ width: "100px", height: "100px", objectFit: "contain" }} />}
-            <p>${Number(p.price).toFixed(2)}</p>
-            <p>In stock: {p.stock}</p>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => addItem({ productId: p.id, name: p.name, price: Number(p.price) }, 1)}>
+            {p.image && <img src={p.image} alt={p.name} />}
+            <p className="product-price">${Number(p.price).toFixed(2)}</p>
+            <p className="product-stock">In stock: {p.stock}</p>
+            <div className="product-actions">
+              <button className="btn btn-primary btn-sm" onClick={() => addItem({ productId: p.id, name: p.name, price: Number(p.price) }, 1)}>
                 Add to cart
               </button>
               <Link to={`/product/${p.id}`}>View</Link>

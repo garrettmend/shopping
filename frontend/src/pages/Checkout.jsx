@@ -86,7 +86,7 @@ const Checkout = () => {
 
   if (!token) {
     return (
-      <p>
+      <p className="status-text">
         Redirecting to login... <Link to="/login">Login</Link>
       </p>
     );
@@ -94,10 +94,10 @@ const Checkout = () => {
 
   if (items.length === 0 && !orderStatus && !successPaid) {
     return (
-      <>
+      <div className="empty-state">
         <h1>Checkout</h1>
         <p>Your cart is empty. <Link to="/">Go to shop</Link></p>
-      </>
+      </div>
     );
   }
 
@@ -105,10 +105,10 @@ const Checkout = () => {
     <div style={{ maxWidth: 600, margin: "0 auto" }}>
       <h1>Checkout</h1>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p className="form-error">{error}</p>}
 
       {(orderStatus || successPaid) && (
-        <div style={{ marginBottom: 16, padding: 12, border: "1px solid #ccc", borderRadius: 8 }}>
+        <div className="card checkout-status">
           <p>
             <strong>Order {orderId ? `#${orderId.slice(0, 8)}` : "status"}:</strong> {orderStatus || "PENDING"}
           </p>
@@ -118,17 +118,17 @@ const Checkout = () => {
         </div>
       )}
 
-      <ul style={{ listStyle: "none", padding: 0 }}>
+      <ul className="cart-list">
         {items.map((i) => (
-          <li key={i.productId} style={{ marginBottom: 12, borderBottom: "1px solid #eee", paddingBottom: 8 }}>
+          <li key={i.productId} className="card cart-line">
             <strong>{i.name}</strong> — ${Number(i.price).toFixed(2)} × {i.qty} = $
             {(Number(i.price) * i.qty).toFixed(2)}
           </li>
         ))}
       </ul>
 
-      <h2>Total: ${totalPrice.toFixed(2)}</h2>
-      <button onClick={payWithStripe} disabled={placing || items.length === 0}>
+      <h2 className="cart-total">Total: ${totalPrice.toFixed(2)}</h2>
+      <button className="btn btn-primary" onClick={payWithStripe} disabled={placing || items.length === 0}>
         {placing ? "Redirecting to Stripe..." : "Pay with Stripe"}
       </button>
     </div>

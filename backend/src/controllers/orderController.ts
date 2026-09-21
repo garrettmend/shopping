@@ -8,6 +8,29 @@ class InsufficientStockError extends Error {
   }
 }
 
+// Runs after the response has been sent: publishes Kafka events and invalidates the product cache.
+const publishOrderSideEffects = async (
+  orderId: string,
+  items: Array<{ productId: string; quantity: number }>,
+  customerEmail: string,
+  orderItemsData: { productId: string; quantity: number; price: any }[],
+) => {
+  await publishOrderCreated(orderId, items, customerEmail);
+
+  // Broadcast the new stock levels so the shop page can update in real time (read after commit, outside the lock)
+  const updatedProducts = await prisma.product.findMany({
+    where: { id: { in: orderItemsData.map((item) => item.productId) } },
+    select: { id: true, stock: true },
+  });
+  await publishStockUpdated(updatedProducts.map((product) => ({ productId: product.id, stock: product.stock })));
+
+  // Invalidate cached products since stock changed after the order
+  for (const item of items) {
+    await redisClient.del(`product:${item.productId}`);
+  }
+  await redisClient.del('products:all');
+};
+
 export const createOrder = async (req: any, res: any) => {
   try {
     const { items, userEmail } = req.body; // Expects array of { productId, quantity } + optional userEmail
@@ -80,23 +103,13 @@ export const createOrder = async (req: any, res: any) => {
       });
     }, { maxWait: 5000, timeout: 8000 });
 
-    // Publish order-created to Kafka (includes userEmail for email receipts)
-    await publishOrderCreated(newOrder.id, items, customerEmail);
-
-    // Broadcast the new stock levels so the shop page can update in real time (read after commit, outside the lock)
-    const updatedProducts = await prisma.product.findMany({
-      where: { id: { in: orderItemsData.map((item) => item.productId) } },
-      select: { id: true, stock: true },
-    });
-    await publishStockUpdated(updatedProducts.map((product) => ({ productId: product.id, stock: product.stock })));
-
-    // Invalidate cached products since stock changed after the order
-    for (const item of items) {
-      await redisClient.del(`product:${item.productId}`);
-    }
-    await redisClient.del('products:all');
-
+    // Respond as soon as the order is committed; Kafka/Redis side effects must not block the client
+    // under load (a slow/unreachable broker would otherwise stall every in-flight request).
     res.status(201).json({ message: 'Order placed successfully', orderId: newOrder.id, status: newOrder.status });
+
+    publishOrderSideEffects(newOrder.id, items, customerEmail, orderItemsData).catch((error) => {
+      console.error('Failed to publish order side effects:', error);
+    });
   } catch (error) {
     if (error instanceof InsufficientStockError) {
       return res.status(400).json({ error: error.message });

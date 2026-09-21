@@ -75,6 +75,7 @@ const runNotificationService = async () => {
   await consumer.connect();
   await consumer.subscribe({ topic: 'inventory-updated', fromBeginning: true });
   await consumer.subscribe({ topic: 'order-failed', fromBeginning: true });
+  await consumer.subscribe({ topic: 'stock-updated', fromBeginning: false });
 
   console.log('[Notification Service] Kafka consumer connected and listening...');
 
@@ -95,6 +96,8 @@ const runNotificationService = async () => {
         io.emit('order-status-update', { orderId: data.orderId, status: 'CANCELLED', reason: data.reason });
         // 2. SEND FAILURE EMAIL VIA RESEND
         await sendOrderFailedEmail(data);
+      } else if (topic === 'stock-updated') {
+        io.emit('stock-updated', data);
       }
     },
   });

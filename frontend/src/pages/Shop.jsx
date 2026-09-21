@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { io } from "socket.io-client";
 import { useCart } from "../CartContext";
 import { useAuth } from "../AuthContext";
 import { Link } from "react-router-dom";
@@ -19,6 +20,17 @@ const Shop = () => {
       .then(res => res.json())
       .then(setProducts)
       .catch(console.error);
+  }, []);
+
+  // Live stock levels pushed from the backend via Kafka -> notification-service -> socket
+  useEffect(() => {
+    const socket = io();
+    socket.on("stock-updated", ({ productId, stock }) => {
+      setProducts((current) =>
+        current.map((p) => (p.id === productId ? { ...p, stock } : p)),
+      );
+    });
+    return () => socket.disconnect();
   }, []);
 
   useEffect(() => {
@@ -145,7 +157,7 @@ const Shop = () => {
         const restoreData = await restoreResponse.json();
         log(`Restored stock to ${restoreData.stock} for ${restoreData.restored} products.`);
         setOrderLoadStatus((current) => `${current.replace(" Restoring stock...", "")} Stock restored to ${restoreData.stock}.`);
-        fetch("/api/products").then((res) => res.json()).then(setProducts).catch(() => {});
+        // the socket "stock-updated" event already applies the restored values to `products`
       } else {
         log("Stock restore failed: admin permission required.");
         setOrderLoadStatus((current) => `${current.replace(" Restoring stock...", "")} Stock restore failed (admin required).`);

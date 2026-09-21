@@ -22,3 +22,12 @@ export const publishOrderCreated = async (
   });
   console.log(`Event published: order-created for Order ID ${orderId}`);
 };
+
+export const publishStockUpdated = async (
+  updates: Array<{ productId: string; stock: number }>
+) => {
+  await producer.send({
+    topic: 'stock-updated',
+    messages: updates.map((update) => ({ value: JSON.stringify(update) })),
+  });
+};

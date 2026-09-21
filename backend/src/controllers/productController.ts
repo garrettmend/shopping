@@ -1,5 +1,6 @@
 import prisma from '../prisma.js';
 import redisClient from '../redis.js';
+import { publishStockUpdated } from '../kafka/producer.js';
 
 export const getProducts = async (req: any, res: any) => {
   // 1. Check Redis cache first
@@ -31,6 +32,8 @@ export const restoreStock = async (_req: any, res: any) => {
     data: { stock: DEFAULT_TEST_STOCK },
   });
   await redisClient.del('products:all');
+  const products = await prisma.product.findMany({ select: { id: true } });
+  await publishStockUpdated(products.map((product) => ({ productId: product.id, stock: DEFAULT_TEST_STOCK })));
   return res.json({ restored: result.count, stock: DEFAULT_TEST_STOCK });
 };
 

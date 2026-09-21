@@ -27,6 +27,8 @@ Set `SEED_PRODUCTS=true` on the backend for one deployment to create the sample 
 
 Kafka is not provisioned by this Blueprint. For Confluent Cloud, set the bootstrap server as the broker value and set the API key and secret as `KAFKA_USERNAME` and `KAFKA_PASSWORD`. The application enables TLS/SASL automatically when both are present. Redis likewise needs a hosted Redis instance unless you add one separately in Render.
 
+Create these Kafka topics before deploying: `order-created`, `inventory-updated`, `order-failed`, `stock-updated`. The last one carries real-time stock levels from the backend to the notification service, which broadcasts them to the shop page over Socket.IO.
+
 The frontend proxies `/api` to the backend and `/socket.io` to the notification service, so browser requests remain same-origin after deployment.
 
 ## Local Docker

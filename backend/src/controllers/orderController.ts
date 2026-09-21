@@ -1,6 +1,6 @@
 import prisma from '../prisma.js';
 import redisClient from '../redis.js';
-import { publishOrderCreated } from '../kafka/producer.js';
+import { publishOrderCreated, publishStockUpdated } from '../kafka/producer.js';
 
 class InsufficientStockError extends Error {
   constructor(public productName: string) {
@@ -54,6 +54,7 @@ export const createOrder = async (req: any, res: any) => {
     }
 
     // Create the Order in a Transaction with status PENDING
+    const stockUpdates: Array<{ productId: string; stock: number }> = [];
     const newOrder = await prisma.$transaction(async (tx) => {
       // Atomically decrease stock, only when enough is available, to avoid overselling under concurrent orders
       for (const item of orderItemsData) {
@@ -65,6 +66,8 @@ export const createOrder = async (req: any, res: any) => {
           const product = orderItemsData.find((entry) => entry.productId === item.productId);
           throw new InsufficientStockError(product?.productId ?? item.productId);
         }
+        const current = await tx.product.findUnique({ where: { id: item.productId }, select: { stock: true } });
+        if (current) stockUpdates.push({ productId: item.productId, stock: current.stock });
       }
 
       return await tx.order.create({
@@ -82,6 +85,11 @@ export const createOrder = async (req: any, res: any) => {
 
     // Publish order-created to Kafka (includes userEmail for email receipts)
     await publishOrderCreated(newOrder.id, items, customerEmail);
+
+    // Broadcast the new stock levels so the shop page can update in real time
+    if (stockUpdates.length > 0) {
+      await publishStockUpdated(stockUpdates);
+    }
 
     // Invalidate cached products since stock changed after the order
     for (const item of items) {
